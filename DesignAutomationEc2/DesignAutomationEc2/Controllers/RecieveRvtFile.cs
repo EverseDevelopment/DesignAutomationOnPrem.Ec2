@@ -21,7 +21,7 @@ namespace DesignAutomationEc2.Controllers
             if (fileExtension != allowedExtension)
                 return BadRequest("Invalid file type. Only .rvt files are allowed.");
 
-            var folderPath = "C:\\Users\\User\\Desktop\\Test"; // Specify your folder path here
+            var folderPath = "C:\\Users\\User\\Desktop\\Test"; // Make it to be deployed on any server
             var filePath = Path.Combine(folderPath, file.FileName);
 
             // Ensure the folder exists
@@ -89,6 +89,7 @@ namespace DesignAutomationEc2.Controllers
             string svfPath = @"C:\Users\User\Desktop\Test\output";
             ZipCompression.Create(svfPath, @"C:\Users\User\Desktop\Test\svffile.zip");
             S3.UploadFileAsync(@"C:\Users\User\Desktop\Test\svffile.zip");
+
             
         }
     }

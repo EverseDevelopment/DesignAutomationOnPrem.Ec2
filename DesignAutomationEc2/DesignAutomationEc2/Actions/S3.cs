@@ -23,8 +23,8 @@ namespace DesignAutomationEc2.Actions
         {
             var fileTransferUtility = new TransferUtility(s3Client);
 
-            // Option 1. Upload a file
-            await fileTransferUtility.UploadAsync(filePath, bucketName);
+                                                                         // TODO Make sure the filepath in AWSS3 changes every time a file is uploaded
+            await fileTransferUtility.UploadAsync(filePath, bucketName); // TODO obtain S3 bucket URL and send it on an email
             Remove.AllFiles(@"C:\Users\User\Desktop\Test");
 
             Console.WriteLine("File uploaded successfully!");
