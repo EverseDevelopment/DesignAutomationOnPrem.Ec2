@@ -21,8 +21,8 @@ namespace DesignAutomationEc2.Controllers
             if (fileExtension != allowedExtension)
                 return BadRequest("Invalid file type. Only .rvt files are allowed.");
 
-            var folderPath = "C:\\Users\\User\\Desktop\\Test"; // Make it to be deployed on any server
-            var filePath = Path.Combine(folderPath, file.FileName);
+            var folderPath = Path.GetTempPath();
+            var filePath = Path.Combine(folderPath, getNewName(file.FileName));
 
             // Ensure the folder exists
             if (!Directory.Exists(folderPath))
@@ -43,18 +43,17 @@ namespace DesignAutomationEc2.Controllers
             }
 
             // Offload the processing to a background thread
-            string exePath = @"C:\Program Files\Autodesk\Revit 2023\RevitExtractor\RevitExtractor.exe";
-            string sourcePath = @"C:\Users\User\Desktop\Test";
+            string exePath = ConfigValues.REVIT_EXTRACTOR_LOCATION;
 
             // Construct the full command with arguments
-            string arguments = $"\"{sourcePath}\" \"{filePath}\"";
+            string arguments = $"\"{folderPath}\" \"{filePath}\"";
 
-            Task.Run(() => ProcessFileInBackground(exePath, arguments));
+            Task.Run(() => ProcessFileInBackground(exePath, arguments, folderPath));
 
             return Ok($"File {file.FileName} has been uploaded successfully.");
         }
 
-        private void ProcessFileInBackground(string exePath, string arguments)
+        private void ProcessFileInBackground(string exePath, string arguments, string tempFolderPath)
         {
             try
             {
@@ -86,11 +85,20 @@ namespace DesignAutomationEc2.Controllers
                 Console.WriteLine($"An error occurred: {e.Message}");
             }
 
-            string svfPath = @"C:\Users\User\Desktop\Test\output";
-            ZipCompression.Create(svfPath, @"C:\Users\User\Desktop\Test\svffile.zip");
-            S3.UploadFileAsync(@"C:\Users\User\Desktop\Test\svffile.zip");
+            string svfPath = @$"{tempFolderPath}\output";
+            ZipCompression.Create(svfPath, @$"{tempFolderPath}\svffile.zip");
+            S3.UploadFileAsync(@$"{tempFolderPath}\svffile.zip", tempFolderPath);
+        }
 
-            
+        static string getNewName(string fullPath)
+        {
+            long milisegundos = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+
+            string extension = Path.GetExtension(fullPath);
+
+            string newName = $"{milisegundos}{extension}";
+
+            return newName;
         }
     }
 }

@@ -3,41 +3,80 @@ using Amazon;
 using Amazon.S3;
 using Amazon.S3.Transfer;
 using System.Threading.Tasks;
+using System.Net;
+using MimeKit;
+using MailKit.Net.Smtp;
 
 namespace DesignAutomationEc2.Actions
 {
     public class S3
     {
-    private static string bucketName = "everse.assets"; // Replace with your bucket name
-
-    // Specify your AWS credentials
-    private static string accessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID"); // Replace with your access key
-    private static string secretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY"); // Replace with your secret key
-
-    private static readonly RegionEndpoint bucketRegion = RegionEndpoint.USEast1; // Set your bucket region
-
-    public static async Task UploadFileAsync(string filePath)
-    {
-        var s3Client = new AmazonS3Client(accessKey, secretKey, bucketRegion);
-        try
+        public static async Task UploadFileAsync(string filePath, string folderPath)
         {
-            var fileTransferUtility = new TransferUtility(s3Client);
+            var s3Client = new AmazonS3Client(ConfigValues.AWS_AccessKey, ConfigValues.AWS_SecretKey, ConfigValues.regionEndpoint);
+            try
+            {
+                var fileTransferUtility = new TransferUtility(s3Client);
 
-                                                                         // TODO Make sure the filepath in AWSS3 changes every time a file is uploaded
-            await fileTransferUtility.UploadAsync(filePath, bucketName); // TODO obtain S3 bucket URL and send it on an email
-            Remove.AllFiles(@"C:\Users\User\Desktop\Test");
+                // TODO Make sure the filepath in AWSS3 changes every time a file is uploaded
+                await fileTransferUtility.UploadAsync(filePath, ConfigValues.BucketName);
+                var url = await GetPublicUrlAsync(s3Client, Path.GetFileName(filePath));
+                Remove.AllFiles(folderPath);
 
-            Console.WriteLine("File uploaded successfully!");
+                Console.WriteLine("File uploaded successfully!");
+            }
+            catch (AmazonS3Exception e)
+            {
+                Console.WriteLine($"Error encountered on server. Message:'{e.Message}'");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Unknown encountered on server. Message:'{e.Message}'");
+            }
         }
-        catch (AmazonS3Exception e)
+
+        static async Task<string> GetPublicUrlAsync(AmazonS3Client s3Client, string objectKey)
         {
-            Console.WriteLine($"Error encountered on server. Message:'{e.Message}'");
+            var request = new Amazon.S3.Model.GetPreSignedUrlRequest
+            {
+                BucketName = ConfigValues.BucketName,
+                Key = objectKey,
+                Expires = DateTime.Now.AddHours(ConfigValues.LINK_DURATION_IN_HOURS),
+                Protocol = Protocol.HTTPS
+            };
+
+            var url = s3Client.GetPreSignedURL(request);
+            return url;
         }
-        catch (Exception e)
+
+        static void SendEmail(string recipientEmail, string URL)
         {
-            Console.WriteLine($"Unknown encountered on server. Message:'{e.Message}'");
+            string emailContent = $"This is the URL: {URL}";
+            try
+            {
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(ConfigValues.EMAIL_NAME, ConfigValues.SMTP_USER));
+                message.To.Add(new MailboxAddress("", recipientEmail));
+                message.Subject = ConfigValues.EMAIL_SUBJECT;
+                message.Body = new TextPart("plain")
+                {
+                    Text = emailContent
+                };
+
+                using (var client = new SmtpClient())
+                {
+                    client.Connect(ConfigValues.SMTP_SERVER, ConfigValues.SMTP_PORT, MailKit.Security.SecureSocketOptions.StartTls);
+                    client.Authenticate(ConfigValues.SMTP_SENDER, ConfigValues.SMTP_PASSWORD);
+                    client.Send(message);
+                    client.Disconnect(true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(emailContent);
+                Console.WriteLine(ex.Message);
+            }
         }
     }
-}
 
 }
