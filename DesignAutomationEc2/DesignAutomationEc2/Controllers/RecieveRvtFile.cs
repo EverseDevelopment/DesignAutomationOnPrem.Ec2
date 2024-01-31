@@ -86,8 +86,9 @@ namespace DesignAutomationEc2.Controllers
             }
 
             string svfPath = @$"{tempFolderPath}\output";
-            ZipCompression.Create(svfPath, @$"{tempFolderPath}\svffile.zip");
-            S3.UploadFileAsync(@$"{tempFolderPath}\svffile.zip", tempFolderPath);
+            var fileName = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond).ToString();
+            ZipCompression.Create(svfPath, @$"{tempFolderPath}\{fileName}.zip");
+            S3.UploadFileAsync(@$"{tempFolderPath}\{fileName}.zip", tempFolderPath);
         }
 
         static string getNewName(string fullPath)
