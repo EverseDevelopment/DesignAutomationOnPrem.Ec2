@@ -12,7 +12,7 @@ namespace DesignAutomationEc2
         /// <summary>
         /// Set your Bucket name
         /// </summary>
-        public const string BucketName = "everse.assets"; // Replace with your bucket name
+        public const string BucketName = "Your.Bucket.Name"; // Replace with your bucket name
 
         /// <summary>
         /// SET your Revit Extractor location
